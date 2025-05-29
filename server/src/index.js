@@ -1,4 +1,4 @@
-// server/src/index.js - Aktualisierte Server-Konfiguration
+// server/src/index.js - KOMPLETTER CODE
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -6,14 +6,14 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 
-// Database connection (deine neue database.js)
+// Database connection
 import connectDB from './config/database.js';
 
 // Routes
 import authRoutes from './routes/auth.js';
+import campaignRoutes from './routes/campaigns.js';
 // Weitere Routes können hier importiert werden:
 // import productRoutes from './routes/products.js';
-// import campaignRoutes from './routes/campaigns.js';
 // import marketIntelRoutes from './routes/market-intelligence.js';
 
 // Load environment variables
@@ -148,6 +148,7 @@ app.get('/api', (req, res) => {
     description: 'AI-powered marketing intelligence platform',
     endpoints: {
       auth: '/api/auth',
+      campaigns: '/api/campaigns',
       health: '/health'
     }
   });
@@ -156,9 +157,11 @@ app.get('/api', (req, res) => {
 // Authentication routes
 app.use('/api/auth', authRoutes);
 
+// Campaign routes
+app.use('/api/campaigns', campaignRoutes);
+
 // TODO: Uncomment when routes are implemented
 // app.use('/api/products', productRoutes);
-// app.use('/api/campaigns', campaignRoutes);
 // app.use('/api/market-intelligence', marketIntelRoutes);
 
 // =============================================================================
@@ -238,13 +241,19 @@ const startServer = async () => {
 
     // Start Express server
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server running on port ${PORT}`);
-      console.log(`📡 Health check: http://localhost:${PORT}/health`);
-      console.log(`🔗 API Base: http://localhost:${PORT}/api`);
+      console.log(`
+🔥 Prometheus Marketing Bot API 🔥
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🛠️  Development mode active`);
-      }
+⚡ Server: http://localhost:${PORT}
+🌍 Environment: ${process.env.NODE_ENV}
+📊 Database: MongoDB
+🏥 Health: http://localhost:${PORT}/health
+🔗 API Base: http://localhost:${PORT}/api
+
+Ready to ignite your campaigns! 🚀
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      `);
     });
 
     // Graceful shutdown

@@ -1,17 +1,25 @@
+// client/src/pages/Dashboard.jsx - UPDATE: Button verlinken
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; // ← HINZUFÜGEN
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Zap } from 'lucide-react';
+import { LogOut, Zap, Target, BarChart3, Brain, Settings } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate(); // ← HINZUFÜGEN
 
   const handleLogout = async () => {
     await logout();
   };
 
+  // ← NEUE NAVIGATION FUNKTIONEN
+  const handleCreateCampaign = () => {
+    navigate('/create-campaign');
+  };
+
   return (
     <div className="min-h-screen bg-dark">
-      {/* Header */}
+      {/* Header - UNVERÄNDERT */}
       <header className="bg-gray-900 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -57,12 +65,16 @@ const Dashboard = () => {
             <p className="text-gray-400 mb-6">
               Create your first campaign and let Prometheus automate your marketing success.
             </p>
-            <button className="prometheus-button-primary w-full">
+            {/* ← BUTTON UPDATE: onClick Handler hinzufügen */}
+            <button
+              onClick={handleCreateCampaign}
+              className="prometheus-button-primary w-full"
+            >
               Create Campaign
             </button>
           </div>
 
-          {/* Development Info */}
+          {/* Development Info - UNVERÄNDERT */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-8 p-4 bg-green-900/20 border border-green-500/20 rounded-lg max-w-md mx-auto">
               <h4 className="text-green-500 font-semibold mb-2">🔧 Development Mode</h4>

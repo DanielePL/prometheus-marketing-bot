@@ -1,3 +1,4 @@
+// client/src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -16,12 +17,20 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('prometheus_token');
+    console.log('🔐 API Request Interceptor:', {
+      url: config.url,
+      method: config.method,
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'NONE'
+    });
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -30,7 +39,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('❌ API Response Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message,
+      url: error.config?.url
+    });
+
     if (error.response?.status === 401) {
+      console.log('🚪 Token expired/invalid, redirecting to login...');
       // Token expired or invalid
       localStorage.removeItem('prometheus_token');
       localStorage.removeItem('prometheus_user');

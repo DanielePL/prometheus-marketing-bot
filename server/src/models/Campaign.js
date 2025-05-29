@@ -1,3 +1,4 @@
+// server/src/models/Campaign.js - KOMPLETTER CODE
 import mongoose from 'mongoose';
 
 const campaignSchema = new mongoose.Schema({
@@ -7,9 +8,15 @@ const campaignSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Campaign name cannot exceed 100 characters']
   },
-  objective: {
+  // Multiple objectives support
+  objective: [{
     type: String,
-    required: [true, 'Campaign objective is required'],
+    enum: ['AWARENESS', 'TRAFFIC', 'ENGAGEMENT', 'LEADS', 'CONVERSIONS', 'SALES']
+  }],
+  // Primary objective for compatibility
+  primaryObjective: {
+    type: String,
+    required: [true, 'Primary campaign objective is required'],
     enum: ['AWARENESS', 'TRAFFIC', 'ENGAGEMENT', 'LEADS', 'CONVERSIONS', 'SALES']
   },
   status: {
