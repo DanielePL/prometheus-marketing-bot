@@ -1,0 +1,173 @@
+// Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  avatar    String?
+  plan      Plan     @default(STARTER)
+  status    UserStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  products  Product[]
+  campaigns Campaign[]
+
+  @@map("users")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float?
+  category    String
+  imageUrl    String?
+  websiteUrl  String?
+
+  // AI Analysis Results
+  features    Json?    // Extracted features
+  usps        Json?    // Unique selling propositions
+  audiences   Json?    // Target audiences
+  marketData  Json?    // Market intelligence data
+
+  // User relation
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  campaigns   Campaign[]
+
+  @@map("products")
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  objective   String
+  status      CampaignStatus @default(DRAFT)
+
+  // Budget & Performance
+  dailyBudget Float?
+  totalBudget Float?
+  spend       Float          @default(0)
+  revenue     Float          @default(0)
+  roas        Float?
+
+  // Platform specific IDs
+  metaId      String?
+  googleId    String?
+  tiktokId    String?
+
+  // AI Generated Content
+  content     Json?          // Headlines, descriptions, CTAs
+  audiences   Json?          // Target audience definitions
+  creatives   Json?          // Creative variations
+  strategy    Json?          // AI strategy recommendations
+
+  // Relations
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  launchedAt  DateTime?
+
+  // Performance tracking
+  metrics     Metric[]
+
+  @@map("campaigns")
+}
+
+model Metric {
+  id         String   @id @default(cuid())
+
+  // Performance data
+  date       DateTime
+  platform   String   // meta, google, tiktok
+
+  // Core metrics
+  impressions Int     @default(0)
+  clicks      Int     @default(0)
+  spend       Float   @default(0)
+  revenue     Float   @default(0)
+
+  // Calculated metrics
+  ctr         Float?  // Click-through rate
+  cpc         Float?  // Cost per click
+  roas        Float?  // Return on ad spend
+
+  // Campaign relation
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Timestamp
+  createdAt   DateTime @default(now())
+
+  @@unique([campaignId, date, platform])
+  @@map("metrics")
+}
+
+model MarketIntelligence {
+  id              String   @id @default(cuid())
+
+  // Analysis target
+  productCategory String
+  market          String   // DACH, USA, etc.
+
+  // AI Analysis Results
+  competitors     Json?    // Competitor analysis
+  trends          Json?    // Market trends
+  audiences       Json?    // Audience insights
+  opportunities   Json?    // Market opportunities
+  channelRecommendations Json? // Best channels for this market
+
+  // Metadata
+  confidence      Float?   // AI confidence score
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("market_intelligence")
+}
+
+// Enums
+enum Plan {
+  STARTER
+  GROWTH
+  SCALE
+  ENTERPRISE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
