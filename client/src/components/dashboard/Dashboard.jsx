@@ -1,5 +1,6 @@
+// client/src/components/dashboard/Dashboard.jsx - KORRIGIERT
 import React from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext'; // ✅ Korrigiert
 import { LogOut, Settings, BarChart3, Zap, Target, Brain } from 'lucide-react';
 
 const Dashboard = () => {

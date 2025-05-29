@@ -18,15 +18,19 @@
     "test": "npm run test:client && npm run test:server",
     "test:client": "cd client && npm test",
     "test:server": "cd server && npm test",
-    "db:migrate": "cd server && npx prisma migrate dev",
-    "db:seed": "cd server && npx prisma db seed",
-    "db:studio": "cd server && npx prisma studio",
+    "db:seed": "cd server && node src/scripts/seed.js",
+    "db:connect": "cd server && mongosh $MONGODB_URI",
+    "db:backup": "cd server && npm run backup",
+    "db:restore": "cd server && npm run restore",
     "lint": "npm run lint:client && npm run lint:server",
     "lint:client": "cd client && npm run lint",
-    "lint:server": "cd server && npm run lint"
+    "lint:server": "cd server && npm run lint",
+    "deploy": "npm run build && npm run deploy:server",
+    "deploy:server": "cd server && npm run deploy"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.3"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -39,6 +43,15 @@
     "ai",
     "automation",
     "performance-marketing",
-    "prometheus"
-  ]
+    "prometheus",
+    "mongodb",
+    "mongoose",
+    "express"
+  ],
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.15.1",
+    "validator": "^13.15.15"
+  }
 }
