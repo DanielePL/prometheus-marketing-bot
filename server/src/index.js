@@ -1,4 +1,4 @@
-// server/src/index.js - KOMPLETTER CODE
+// server/src/index.js - UPDATE: Live Performance Integration
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -12,9 +12,10 @@ import connectDB from './config/database.js';
 // Routes
 import authRoutes from './routes/auth.js';
 import campaignRoutes from './routes/campaigns.js';
-// Weitere Routes können hier importiert werden:
-// import productRoutes from './routes/products.js';
-// import marketIntelRoutes from './routes/market-intelligence.js';
+import performanceRoutes from './routes/performance.js'; // ← NEUE ROUTE
+
+// Services
+import livePerformanceService from './services/livePerformanceService.js'; // ← NEUER SERVICE
 
 // Load environment variables
 dotenv.config();
@@ -42,10 +43,10 @@ app.use(helmet({
 // Compression middleware
 app.use(compression());
 
-// Rate limiting - mehr Requests für Production
+// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 Minuten
-  max: process.env.NODE_ENV === 'production' ? 200 : 100, // Limit pro IP
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 200 : 1000, // More requests in dev
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
@@ -55,7 +56,7 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration - erweitert für Production
+// CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
@@ -64,7 +65,6 @@ const corsOptions = {
       'http://localhost:3001'
     ].filter(Boolean);
 
-    // Allow requests with no origin (mobile apps, etc.)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
@@ -79,7 +79,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Preflight requests
+app.options('*', cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({
@@ -95,7 +95,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware (nur in Development detailliert)
+// Request logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -115,10 +115,9 @@ if (process.env.NODE_ENV === 'development') {
 // API ROUTES
 // =============================================================================
 
-// Health check endpoint - erweitert
+// Health check endpoint
 app.get('/health', async (req, res) => {
   try {
-    // Check database connection
     const dbStatus = await import('mongoose').then(mongoose =>
       mongoose.default.connection.readyState === 1 ? 'connected' : 'disconnected'
     );
@@ -128,6 +127,7 @@ app.get('/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
       database: dbStatus,
+      livePerformanceEngine: livePerformanceService.isRunning, // ← NEUE STATUS INFO
       uptime: process.uptime(),
       memory: process.memoryUsage()
     });
@@ -145,12 +145,20 @@ app.get('/api', (req, res) => {
   res.json({
     name: 'Prometheus API',
     version: '1.0.0',
-    description: 'AI-powered marketing intelligence platform',
+    description: 'AI-powered marketing intelligence platform with live performance tracking', // ← UPDATED
     endpoints: {
       auth: '/api/auth',
       campaigns: '/api/campaigns',
+      performance: '/api/performance', // ← NEUE ENDPOINT
       health: '/health'
-    }
+    },
+    features: [
+      'Campaign Management',
+      'AI Strategy Generation',
+      'Live Performance Tracking', // ← NEUE FEATURES
+      'Real-time Alerts',
+      'Profit & Loss Calculation'
+    ]
   });
 });
 
@@ -160,9 +168,8 @@ app.use('/api/auth', authRoutes);
 // Campaign routes
 app.use('/api/campaigns', campaignRoutes);
 
-// TODO: Uncomment when routes are implemented
-// app.use('/api/products', productRoutes);
-// app.use('/api/market-intelligence', marketIntelRoutes);
+// ← NEUE PERFORMANCE ROUTES
+app.use('/api/performance', performanceRoutes);
 
 // =============================================================================
 // ERROR HANDLING
@@ -228,7 +235,7 @@ app.use((error, req, res, next) => {
 });
 
 // =============================================================================
-// SERVER STARTUP
+// SERVER STARTUP & LIVE PERFORMANCE ENGINE
 // =============================================================================
 
 const startServer = async () => {
@@ -239,6 +246,10 @@ const startServer = async () => {
     // Connect to MongoDB first
     await connectDB();
 
+    // ← START LIVE PERFORMANCE ENGINE
+    console.log('⚡ Starting Live Performance Engine...');
+    livePerformanceService.start();
+
     // Start Express server
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`
@@ -248,26 +259,46 @@ const startServer = async () => {
 ⚡ Server: http://localhost:${PORT}
 🌍 Environment: ${process.env.NODE_ENV}
 📊 Database: MongoDB
+📈 Live Performance: ${livePerformanceService.isRunning ? '✅ ACTIVE' : '❌ INACTIVE'}
 🏥 Health: http://localhost:${PORT}/health
 🔗 API Base: http://localhost:${PORT}/api
 
-Ready to ignite your campaigns! 🚀
+🚀 NEW FEATURES:
+📊 Live Performance Dashboard
+🚨 Real-time Alerts  
+💰 Profit & Loss Tracking
+📈 Auto-Updates every 15min
+
+Ready to dominate the market! 🔥
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
     });
 
-    // Graceful shutdown
+    // Graceful shutdown with Live Performance Engine cleanup
     const gracefulShutdown = (signal) => {
       console.log(`\n🛑 ${signal} received, shutting down gracefully...`);
+
+      // Stop Live Performance Engine first
+      console.log('⏸️ Stopping Live Performance Engine...');
+      livePerformanceService.stop();
+
       server.close(async () => {
         console.log('✅ Server closed');
-        // MongoDB connection is closed in database.js
+        console.log('✅ Live Performance Engine stopped');
         process.exit(0);
       });
     };
 
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+    // ← OPTIONAL: Generate initial metrics for existing campaigns
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 Generating initial performance data for existing campaigns...');
+      setTimeout(() => {
+        livePerformanceService.updateAllCampaigns();
+      }, 5000); // Wait 5 seconds for server to be fully ready
+    }
 
   } catch (error) {
     console.error('❌ Failed to start server:', error);

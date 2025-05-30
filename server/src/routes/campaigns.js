@@ -1,10 +1,11 @@
-// server/src/routes/campaigns.js - KOMBINIERTER OPTIMALER CODE
+// server/src/routes/campaigns.js - FIX: Gültige ObjectId für Dev-User
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose'; // ← HINZUFÜGEN
 import Campaign from '../models/Campaign.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
-import { generateCampaignStrategy } from '../services/openaiService.js'; // ← OpenAI Integration
+import { generateCampaignStrategy } from '../services/openaiService.js';
 
 const router = express.Router();
 
@@ -26,17 +27,20 @@ const authenticateToken = async (req, res, next) => {
     // DEV-MODE SUPPORT: Wenn es ein dev-token ist und wir im Entwicklungsmodus sind
     if (process.env.NODE_ENV === 'development' && token.startsWith('dev-token-')) {
       console.log('🔧 Development token detected, using dev user');
-      
-      // Erstelle ein Dev-User-Objekt
+
+      // ✅ FIX: Verwende eine gültige MongoDB ObjectId
+      const devUserId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'); // Gültige ObjectId
+
       req.user = {
-        _id: 'dev-user-123',
+        _id: devUserId,  // ← Jetzt eine echte ObjectId!
         email: 'dev@prometheus.com',
         name: 'Dev User',
         plan: 'ENTERPRISE',
         status: 'ACTIVE'
       };
-      
+
       console.log('✅ Dev user authenticated:', req.user.email);
+      console.log('✅ Dev user ObjectId:', req.user._id);
       return next();
     }
 
@@ -77,108 +81,130 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// POST /api/campaigns - Create new campaign with OpenAI
+// POST /api/campaigns - Create new campaign with DEBUG LOGGING
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    console.log('🚀 Creating campaign for user:', req.user.email);
-    console.log('📝 Campaign request data:', JSON.stringify(req.body, null, 2));
+    console.log('🚀 ===== CAMPAIGN CREATION DEBUG =====');
+    console.log('👤 User:', req.user.email);
+    console.log('📦 Raw Request Body Keys:', Object.keys(req.body));
+    console.log('📝 Full Request Body:', JSON.stringify(req.body, null, 2));
 
     const {
       // Basic info
       name,
       objective,
-
       // Product info
       productName,
       productDescription,
       productPrice,
       productCategory,
       productUrl,
-
       // Budget & Schedule
       dailyBudget,
       totalBudget,
       currency,
       startDate,
       endDate,
-
       // Target Market
       targetMarket,
       platforms,
-
       // AI Preferences
       aiTone,
       aiLanguage,
       focusKeywords
     } = req.body;
 
-    // Enhanced validation with specific error messages
+    // DEBUG: Check specific values that might cause issues
+    console.log('🔍 VALIDATION CHECK:');
+    console.log('- name:', typeof name, '=', name);
+    console.log('- objective:', typeof objective, Array.isArray(objective), '=', objective);
+    console.log('- productName:', typeof productName, '=', productName);
+    console.log('- productDescription:', typeof productDescription, '=', productDescription?.substring(0, 30) + '...');
+    console.log('- productPrice:', typeof productPrice, '=', productPrice, '| parsed:', parseFloat(productPrice));
+    console.log('- productCategory:', typeof productCategory, '=', productCategory);
+    console.log('- dailyBudget:', typeof dailyBudget, '=', dailyBudget, '| parsed:', parseFloat(dailyBudget));
+    console.log('- startDate:', typeof startDate, '=', startDate);
+    console.log('- platforms:', typeof platforms, Array.isArray(platforms), '=', platforms);
+
+    // Enhanced validation with DEBUG OUTPUT
+    const errors = [];
+
     if (!name?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Campaign name is required'
-      });
-    }
+      errors.push('Campaign name is required');
+      console.log('❌ FAIL: Campaign name');
+    } else console.log('✅ PASS: Campaign name');
 
     if (!objective || !Array.isArray(objective) || objective.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'At least one campaign objective is required'
-      });
-    }
+      errors.push('At least one campaign objective is required');
+      console.log('❌ FAIL: Objective -', typeof objective, Array.isArray(objective), objective?.length);
+    } else console.log('✅ PASS: Objectives');
 
     if (!productName?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Product name is required'
-      });
-    }
+      errors.push('Product name is required');
+      console.log('❌ FAIL: Product name');
+    } else console.log('✅ PASS: Product name');
 
     if (!productDescription?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Product description is required'
-      });
-    }
+      errors.push('Product description is required');
+      console.log('❌ FAIL: Product description');
+    } else console.log('✅ PASS: Product description');
 
     if (!productPrice || isNaN(parseFloat(productPrice))) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid product price is required'
-      });
-    }
+      errors.push('Valid product price is required');
+      console.log('❌ FAIL: Product price -', productPrice, '| isNaN:', isNaN(parseFloat(productPrice)));
+    } else console.log('✅ PASS: Product price');
 
     if (!productCategory) {
-      return res.status(400).json({
-        success: false,
-        message: 'Product category is required'
-      });
-    }
+      errors.push('Product category is required');
+      console.log('❌ FAIL: Product category');
+    } else console.log('✅ PASS: Product category');
 
     if (!dailyBudget || isNaN(parseFloat(dailyBudget))) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid daily budget is required'
-      });
-    }
+      errors.push('Valid daily budget is required');
+      console.log('❌ FAIL: Daily budget -', dailyBudget, '| isNaN:', isNaN(parseFloat(dailyBudget)));
+    } else console.log('✅ PASS: Daily budget');
 
     if (!startDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Start date is required'
-      });
-    }
+      errors.push('Start date is required');
+      console.log('❌ FAIL: Start date');
+    } else console.log('✅ PASS: Start date');
 
     if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+      errors.push('At least one platform must be selected');
+      console.log('❌ FAIL: Platforms -', typeof platforms, Array.isArray(platforms), platforms?.length);
+    } else console.log('✅ PASS: Platforms');
+
+    // If validation fails, return detailed error info
+    if (errors.length > 0) {
+      console.log('❌ ===== VALIDATION FAILED =====');
+      errors.forEach((error, i) => console.log(`   ${i+1}. ${error}`));
+      
       return res.status(400).json({
         success: false,
-        message: 'At least one platform must be selected'
+        message: 'Validation failed',
+        errors,
+        debug: {
+          receivedFields: Object.keys(req.body),
+          fieldTypes: {
+            name: typeof name,
+            objective: typeof objective + (Array.isArray(objective) ? ` [${objective?.length}]` : ''),
+            productName: typeof productName,
+            productDescription: typeof productDescription,
+            productPrice: typeof productPrice,
+            dailyBudget: typeof dailyBudget,
+            platforms: typeof platforms + (Array.isArray(platforms) ? ` [${platforms?.length}]` : '')
+          }
+        }
       });
     }
 
-    console.log('✅ Validation passed, proceeding with campaign creation');
+    console.log('✅ All validations passed, proceeding...');
 
-    // Create or find product
+    // Rest of your existing code stays the same...
+    // (Create/find product, generate AI strategy, create campaign)
+    
+    console.log('🔍 Looking for existing product with userId:', req.user._id);
+    
     let product = await Product.findOne({
       name: productName.trim(),
       userId: req.user._id
@@ -186,6 +212,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     if (!product) {
       console.log('📦 Creating new product:', productName);
+      
       product = new Product({
         name: productName.trim(),
         description: productDescription.trim(),
@@ -198,18 +225,19 @@ router.post('/', authenticateToken, async (req, res) => {
           lastAnalyzed: new Date()
         }
       });
+      
       await product.save();
       console.log('✅ Product created with ID:', product._id);
     } else {
       console.log('📦 Using existing product:', product._id);
     }
 
-    // Generate AI strategy - Try OpenAI first, fallback to basic
+    // Generate AI strategy
     console.log('🤖 Generating campaign strategy...');
     let aiStrategy;
 
     try {
-      // Prepare data for OpenAI
+      // Import the openaiService and use the function
       const campaignDataForAI = {
         productName: productName.trim(),
         productDescription: productDescription.trim(),
@@ -223,15 +251,16 @@ router.post('/', authenticateToken, async (req, res) => {
         focusKeywords: focusKeywords?.trim() || '',
         dailyBudget: parseFloat(dailyBudget)
       };
-
-      // Try OpenAI first
-      aiStrategy = await generateCampaignStrategy(campaignDataForAI);
-      console.log('✅ OpenAI strategy generated successfully');
-
-    } catch (openaiError) {
-      console.warn('⚠️ OpenAI failed, using fallback strategy:', openaiError.message);
-
-      // Fallback to basic strategy
+      
+      // Rufe direkt die Fallback-Funktion auf
+      console.log('⚠️ Verwende Fallback-Strategie (OpenAI für Debugging deaktiviert)');
+      aiStrategy = generateBasicAIStrategy(campaignDataForAI);
+      console.log('✅ Fallback-Strategie generiert');
+      
+    } catch (error) {
+      console.warn('⚠️ Fehler bei der Strategiegenerierung:', error.message);
+      
+      // Verwende immer die Fallback-Strategie
       aiStrategy = generateBasicAIStrategy({
         productName: productName.trim(),
         productDescription: productDescription.trim(),
@@ -244,14 +273,15 @@ router.post('/', authenticateToken, async (req, res) => {
         aiLanguage,
         focusKeywords: focusKeywords?.trim() || ''
       });
-      console.log('✅ Fallback strategy generated');
+      console.log('✅ Fallback-Strategie generiert nach Fehler');
     }
 
     // Create campaign with AI-generated content
+    console.log('📋 Creating campaign object...');
     const campaign = new Campaign({
       name: name.trim(),
-      objective: objective, // Array of objectives
-      primaryObjective: objective[0], // First one as primary
+      objective: objective,
+      primaryObjective: objective[0],
       status: 'DRAFT',
 
       budget: {
@@ -266,7 +296,6 @@ router.post('/', authenticateToken, async (req, res) => {
         timezone: 'Europe/Berlin'
       },
 
-      // Initialize platforms
       platforms: platforms.reduce((acc, platform) => {
         acc[platform.toLowerCase()] = {
           status: 'PENDING',
@@ -275,36 +304,65 @@ router.post('/', authenticateToken, async (req, res) => {
         return acc;
       }, {}),
 
-      // AI Generated Content (from OpenAI or fallback)
       aiContent: aiStrategy,
-
-      // Relations
       userId: req.user._id,
       productId: product._id
     });
 
+    console.log('💾 Saving campaign to database...');
     await campaign.save();
     console.log('✅ Campaign created successfully with ID:', campaign._id);
 
-    // Populate product data for response
     await campaign.populate('productId');
 
-    res.status(201).json({
-      success: true,
-      message: 'Campaign created successfully with AI-generated strategy',
-      campaign: campaign.toJSON()
-    });
+    console.log('🎉 ===== SUCCESS: Campaign created =====');
+
+    // Füge diesen Code direkt vor dem ursprünglichen res.status(201).json({...}) ein
+    // und ersetze den ursprünglichen Response-Code
+
+    // DEBUG: Check response before sending
+    console.log('📤 ===== PREPARING RESPONSE =====');
+    console.log('Campaign ID:', campaign._id);
+    console.log('Campaign name:', campaign.name);
+    console.log('AI Strategy generated:', !!campaign.aiContent);
+    console.log('AI Strategy size:', JSON.stringify(campaign.aiContent).length, 'characters');
+
+    try {
+      const responseData = {
+        success: true,
+        message: 'Campaign created successfully with AI-generated strategy',
+        campaign: campaign.toJSON()
+      };
+      
+      console.log('Response data size:', JSON.stringify(responseData).length, 'characters');
+      console.log('📤 SENDING RESPONSE...');
+      
+      res.status(201).json(responseData);
+      
+      console.log('✅ RESPONSE SENT SUCCESSFULLY');
+    } catch (responseError) {
+      console.error('❌ RESPONSE ERROR:', responseError);
+      res.status(500).json({
+        success: false,
+        message: 'Error preparing response',
+        error: responseError.message
+      });
+    }
 
   } catch (error) {
-    console.error('❌ Campaign creation error:', error);
-    console.error('❌ Error stack:', error.stack);
+    console.error('❌ ===== CAMPAIGN CREATION ERROR =====');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
 
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
+      console.error('Mongoose validation errors:', errors);
       return res.status(400).json({
         success: false,
-        message: 'Validation failed',
-        errors
+        message: 'Database validation failed',
+        errors,
+        mongooseError: error.message
       });
     }
 
@@ -318,7 +376,11 @@ router.post('/', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error during campaign creation',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      } : 'Internal server error'
     });
   }
 });
@@ -623,5 +685,6 @@ function estimateConversionRate(category) {
 }
 
 export default router;
+
 // Am Ende der Datei hinzufügen, nach der Definition aller Routen
 console.log('📋 Campaign routes loaded successfully');
