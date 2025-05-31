@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+// Importieren Sie die neue Hilfsfunktion in Ihrer Login-Komponente
+import { performDevLogin, isDevelopmentMode } from '../utils/devLoginHelper';
 
 const ModernLoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -161,18 +163,18 @@ const ModernLoginPage = () => {
             }}
           />
         ))}
-        <style jsx>{`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
-            25% { transform: translateY(-30px) translateX(15px) rotate(90deg); }
-            50% { transform: translateY(-60px) translateX(-10px) rotate(180deg); }
-            75% { transform: translateY(-30px) translateX(-15px) rotate(270deg); }
-          }
-          @keyframes glow {
-            0% { box-shadow: 0 0 5px rgba(255, 165, 0, 0.3); }
-            100% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.6); }
-          }
-        `}</style>
+        <style>{`
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+    25% { transform: translateY(-30px) translateX(15px) rotate(90deg); }
+    50% { transform: translateY(-60px) translateX(-10px) rotate(180deg); }
+    75% { transform: translateY(-30px) translateX(-15px) rotate(270deg); }
+  }
+  @keyframes glow {
+    0% { box-shadow: 0 0 5px rgba(255, 165, 0, 0.3); }
+    100% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.6); }
+  }
+`}</style>
       </div>
     );
   };
@@ -181,24 +183,23 @@ const ModernLoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleDevLogin = async () => {
-    setIsLoading(true);
-    try {
-      // Dev-Login mit fest kodierten Anmeldedaten
-      const success = await login('dev@example.com', 'password123');
-      if (success) {
-        console.log('🚀 Dev Login erfolgreich!');
-        navigate('/dashboard');
-      } else {
-        console.error('Dev Login fehlgeschlagen');
-        // Optional: Fehlermeldung anzeigen
-      }
-    } catch (error) {
-      console.error('Dev Login fehlgeschlagen:', error);
-    } finally {
-      setIsLoading(false);
+const handleDevLogin = async () => {
+  try {
+    // Entfernen Sie den api-Parameter oder setzen Sie ihn auf null
+    const result = await performDevLogin(null, navigate, setIsLoading);
+    
+    if (result.success) {
+      console.log('🚀 Dev Login erfolgreich!');
+      // Die Navigation passiert bereits in performDevLogin
+    } else {
+      console.error('Dev Login fehlgeschlagen:', result.error);
+      setErrorMessage('Dev Login fehlgeschlagen. Bitte versuchen Sie es später erneut.');
     }
-  };
+  } catch (error) {
+    console.error('Dev Login fehlgeschlagen:', error);
+    setErrorMessage('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+  }
+};
 
   const handleLogin = async () => {
     if (!email || !password) {
