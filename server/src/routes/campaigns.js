@@ -684,7 +684,274 @@ function estimateConversionRate(category) {
   return rates[category] || 2.5;
 }
 
-export default router;
-
 // Am Ende der Datei hinzufügen, nach der Definition aller Routen
 console.log('📋 Campaign routes loaded successfully');
+// /prometheus-marketing-engine/server/src/routes/campaigns.js
+// Google Ads API Routes für Campaign Management
+
+import GoogleAdsService from '../services/integrations/googleAdsService.js';
+
+const googleAdsRouter = express.Router();
+
+// Initialize Google Ads Service
+const googleAdsService = new GoogleAdsService();
+
+// Simple auth middleware (replace with your auth system)
+const auth = (req, res, next) => {
+  // Simple auth placeholder - implement your actual auth
+  next();
+};
+
+// ==========================================
+// LIVE PERFORMANCE ROUTES
+// ==========================================
+
+/**
+ * GET /api/campaigns/performance/live
+ * Holt Live-Performance Daten aller Kampagnen
+ */
+googleAdsRouter.get('/performance/live', auth, async (req, res) => {
+  try {
+    const performanceData = await googleAdsService.getRealTimePerformance();
+    
+    res.json({
+      success: true,
+      data: performanceData,
+      timestamp: new Date().toISOString(),
+      platform: 'GOOGLE_ADS'
+    });
+    
+    console.log(`📊 Live performance data delivered for ${Object.keys(performanceData).length} campaigns`);
+    
+  } catch (error) {
+    console.error('❌ Live performance fetch failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch live performance data',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/campaigns/dashboard
+ * Dashboard Übersicht mit allen wichtigen Metriken
+ */
+googleAdsRouter.get('/dashboard', auth, async (req, res) => {
+  try {
+    const dashboardData = await googleAdsService.getPrometheusDashboardData();
+    
+    res.json({
+      success: true,
+      data: dashboardData,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Dashboard data fetch failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch dashboard data',
+      message: error.message
+    });
+  }
+});
+
+// ==========================================
+// CAMPAIGN MANAGEMENT ROUTES
+// ==========================================
+
+/**
+ * POST /api/campaigns/create/performance-max
+ * Erstellt neue Performance Max Kampagne
+ */
+googleAdsRouter.post('/create/performance-max', auth, async (req, res) => {
+  try {
+    const { name, budgetAmount, targetRoas, assets } = req.body;
+    
+    // Validation
+    if (!name || !budgetAmount) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name and budget amount are required'
+      });
+    }
+    
+    if (budgetAmount < 10 || budgetAmount > 10000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Budget must be between €10 and €10,000'
+      });
+    }
+    
+    const campaignData = {
+      name,
+      budgetAmount: parseFloat(budgetAmount),
+      targetRoas: targetRoas || 4.0,
+      assets: assets || {}
+    };
+    
+    const result = await googleAdsService.createPerformanceMaxCampaign(campaignData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Performance Max campaign created successfully',
+      data: result
+    });
+    
+    console.log(`✅ New Performance Max campaign created: ${name}`);
+    
+  } catch (error) {
+    console.error('❌ Campaign creation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create campaign',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/campaigns/optimize
+ * Triggert manuelle Optimierung aller Kampagnen
+ */
+googleAdsRouter.post('/optimize', auth, async (req, res) => {
+  try {
+    const optimizationResults = await googleAdsService.autoOptimizeCampaigns();
+    
+    const totalOptimizations = Object.keys(optimizationResults).length;
+    const successfulOptimizations = Object.values(optimizationResults)
+      .filter(result => result.success).length;
+    
+    res.json({
+      success: true,
+      message: `Optimization completed for ${totalOptimizations} campaigns`,
+      data: {
+        totalCampaigns: totalOptimizations,
+        successfulOptimizations: successfulOptimizations,
+        results: optimizationResults
+      }
+    });
+    
+    console.log(`🤖 Manual optimization completed: ${successfulOptimizations}/${totalOptimizations} successful`);
+    
+  } catch (error) {
+    console.error('❌ Manual optimization failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Optimization failed',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/campaigns/:campaignId/schedule-optimization
+ * Analysiert und optimiert Ad Schedule für spezifische Kampagne
+ */
+googleAdsRouter.get('/:campaignId/schedule-optimization', auth, async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    
+    const scheduleRecommendations = await googleAdsService.optimizeAdSchedule(campaignId);
+    
+    res.json({
+      success: true,
+      data: {
+        campaignId: campaignId,
+        recommendations: scheduleRecommendations,
+        recommendationCount: Object.keys(scheduleRecommendations).length
+      }
+    });
+    
+  } catch (error) {
+    console.error(`❌ Schedule optimization failed for campaign ${req.params.campaignId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Schedule optimization failed',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/campaigns/:campaignId/budget
+ * Manueller Budget Update
+ */
+googleAdsRouter.put('/:campaignId/budget', auth, async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const { multiplier } = req.body;
+    
+    if (!multiplier) {
+      return res.status(400).json({
+        success: false,
+        error: 'Multiplier is required'
+      });
+    }
+    
+    const result = await googleAdsService.increaseCampaignBudget(campaignId, parseFloat(multiplier));
+    
+    res.json({
+      success: result,
+      message: result ? 'Budget updated successfully' : 'Budget update failed',
+      campaignId: campaignId
+    });
+    
+  } catch (error) {
+    console.error(`❌ Budget update failed for campaign ${req.params.campaignId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Budget update failed',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/campaigns/:campaignId/status
+ * Pause/Enable Kampagne
+ */
+googleAdsRouter.put('/:campaignId/status', auth, async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const { status } = req.body; // 'PAUSED' or 'ENABLED'
+    
+    if (!['PAUSED', 'ENABLED'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Status must be either PAUSED or ENABLED'
+      });
+    }
+    
+    let result;
+    if (status === 'PAUSED') {
+      result = await googleAdsService.pauseCampaign(campaignId);
+    } else {
+      // Implement enableCampaign method if needed
+      result = false;
+    }
+    
+    res.json({
+      success: result,
+      message: `Campaign ${status.toLowerCase()} ${result ? 'successfully' : 'failed'}`,
+      campaignId: campaignId,
+      newStatus: status
+    });
+    
+  } catch (error) {
+    console.error(`❌ Status update failed for campaign ${req.params.campaignId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Status update failed',
+      message: error.message
+    });
+  }
+});
+
+   // Am Ende der campaigns.js nach export default router
+   
+   // Google Ads Router-Routen als Sub-Router hinzufügen
+   router.use('/google-ads', googleAdsRouter);
+   
+   export { router as default, googleAdsRouter };

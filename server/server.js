@@ -31,7 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
-    service: 'Prometheus Marketing Bot API',
+    service: 'Prometheus Marketing Engine API',
     version: '1.0.0',
     environment: process.env.NODE_ENV,
     database: 'MongoDB',
@@ -47,7 +47,7 @@ app.use('/api/market-intelligence', marketIntelligenceRoutes);
 // Root API endpoint
 app.get('/api', (req, res) => {
   res.json({
-    message: 'Welcome to Prometheus Marketing Bot API 🔥',
+    message: 'Welcome to Prometheus Marketing Engine API 🔥',
     version: '1.0.0',
     documentation: '/api/docs',
     endpoints: {
@@ -84,7 +84,7 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`
-🔥 Prometheus Marketing Bot API 🔥
+🔥 Prometheus Marketing Engine API 🔥
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ⚡ Server: http://localhost:${PORT}

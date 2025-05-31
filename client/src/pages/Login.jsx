@@ -54,7 +54,7 @@ const Login = () => {
         <div className="text-center mb-8">
           <div className="prometheus-logo mx-auto mb-4">⚡</div>
           <h1 className="text-3xl font-bold prometheus-gradient-text">PROMETHEUS</h1>
-          <p className="text-gray-400 mt-2">Performance Marketing Bot</p>
+          <p className="text-gray-400 mt-2">Performance Marketing Engine</p>
         </div>
 
         {/* Development Notice */}

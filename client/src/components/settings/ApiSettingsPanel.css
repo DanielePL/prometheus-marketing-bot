@@ -1,0 +1,396 @@
+/* /prometheus-marketing-engine/client/src/components/settings/ApiSettingsPanel.css */
+/* API Settings Panel Styling */
+
+.api-settings-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.panel-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.last-update {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+/* API Section Styling */
+.api-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.api-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.api-section.disabled {
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.api-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.api-info h3 {
+  margin: 0 0 8px 0;
+  color: #1f2937;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.api-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.status-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* Toggle Switch Styling */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background: linear-gradient(45deg, #10b981, #059669);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.toggle-switch.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* API Details Section */
+.api-details {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.detail-item .label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.detail-item .value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.detail-item .value.connected {
+  color: #10b981;
+}
+
+.detail-item .value.disconnected {
+  color: #ef4444;
+}
+
+.detail-item .value.enabled {
+  color: #3b82f6;
+}
+
+.detail-item .value.disabled {
+  color: #6b7280;
+}
+
+/* Action Buttons */
+.api-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.test-button,
+.mock-toggle-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.test-button {
+  background: linear-gradient(45deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.test-button:hover:not(:disabled) {
+  background: linear-gradient(45deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+}
+
+.mock-toggle-button {
+  background: linear-gradient(45deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.mock-toggle-button:hover:not(:disabled) {
+  background: linear-gradient(45deg, #d97706, #b45309);
+  transform: translateY(-1px);
+}
+
+.test-button:disabled,
+.mock-toggle-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Quick Actions Section */
+.quick-actions {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.quick-actions h3 {
+  margin: 0 0 16px 0;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.action-button.refresh {
+  background: linear-gradient(45deg, #6366f1, #4f46e5);
+  color: white;
+}
+
+.action-button.view-performance {
+  background: linear-gradient(45deg, #10b981, #059669);
+  color: white;
+}
+
+.action-button.view-dashboard {
+  background: linear-gradient(45deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Status Footer */
+.status-footer {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.prometheus-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.prometheus-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.prometheus-value {
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Notifications */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .api-settings-panel {
+    padding: 16px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .api-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .api-actions,
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .prometheus-status {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .api-section {
+    background: rgba(31, 41, 55, 0.95);
+    color: white;
+  }
+
+  .api-info h3 {
+    color: white;
+  }
+
+  .detail-item {
+    background: rgba(55, 65, 81, 0.5);
+    border-color: rgba(75, 85, 99, 0.5);
+  }
+
+  .detail-item .label {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .detail-item .value {
+    color: white;
+  }
+}

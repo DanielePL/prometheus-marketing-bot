@@ -23,7 +23,7 @@ const Dashboard = () => {
                 <h1 className="text-xl font-bold prometheus-gradient-text">
                   PROMETHEUS
                 </h1>
-                <p className="text-xs text-gray-400">Marketing Bot</p>
+                <p className="text-xs text-gray-400">Marketing Engine</p>
               </div>
             </div>
 
