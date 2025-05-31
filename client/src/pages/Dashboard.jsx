@@ -1,7 +1,7 @@
 // client/src/pages/Dashboard.jsx - STEP 1: Echte API-Anbindung
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { LogOut, Zap, Target, BarChart3, Brain, Settings, Calendar, DollarSign, Plus, Eye, RefreshCw, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 

@@ -1,6 +1,7 @@
 // client/src/components/LivePerformanceDashboard.jsx - NEUE DATEI ERSTELLEN
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+// In dieser Datei wird AuthContext aus einem Verzeichnis namens "contexts" importiert
+import { useAuth } from '../contexts/AuthContext';
 import {
   TrendingUp,
   TrendingDown,

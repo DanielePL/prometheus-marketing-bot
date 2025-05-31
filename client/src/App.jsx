@@ -1,53 +1,51 @@
-// client/src/App.jsx - UPDATE: Kampagnen-Details Route hinzufügen
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './context/AuthContext';
-
-import Login from './pages/Login';
+// client/src/App.jsx
+// Zusätzliche Importe für App.jsx
+import { BrowserRouter as Router, Routes, Route, useParams, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import AIConsultantPage from './pages/AIConsultantPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
-import CreateCampaign from './pages/CreateCampaign';
-import CampaignDetails from './pages/CampaignDetails'; // ← NEUER IMPORT
-
-const LoadingScreen = () => (
-  <div className="min-h-screen flex items-center justify-center bg-dark">
-    <div className="text-center">
-      <div className="prometheus-logo mb-4">⚡</div>
-      <div className="text-orange-500 font-semibold">Loading Prometheus...</div>
-    </div>
-  </div>
-);
-
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) return <LoadingScreen />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return children;
-};
-
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) return <LoadingScreen />;
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
-  return children;
-};
+import NotFoundPage from './pages/NotFoundPage';
+// Andere Importe...
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Toaster position="top-right" />
+    <Router>
+      <AuthProvider>
         <Routes>
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          {/* Öffentliche Routen */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          
+          {/* Geschützte Routen */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/create-campaign" element={<ProtectedRoute><CreateCampaign /></ProtectedRoute>} />
-          {/* ← NEUE ROUTE */}
-          <Route path="/campaign/:id" element={<ProtectedRoute><CampaignDetails /></ProtectedRoute>} />
+          <Route path="/ai-consultant" element={<ProtectedRoute><AIConsultantPage /></ProtectedRoute>} />
+          <Route 
+            path="/ai-consultant/:campaignId" 
+            element={
+              <ProtectedRoute>
+                <CampaignParamWrapper Component={AIConsultantPage} />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Standardroute zur Startseite oder Login umleiten */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
+          {/* 404-Seite */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
+}
+
+// Hilfskomponente für das Übergeben des campaignId-Parameters
+function CampaignParamWrapper({ Component }) {
+  const { campaignId } = useParams();
+  return <Component campaignId={campaignId} />;
 }
 
 export default App;
