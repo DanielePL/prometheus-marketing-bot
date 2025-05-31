@@ -225,6 +225,17 @@ const Dashboard = () => {
                 <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                 {isLoading ? 'Lädt...' : 'Aktualisieren'}
               </button>
+              
+              {/* HIER DEN NEUEN BUTTON HINZUFÜGEN */}
+              <button
+                onClick={() => navigate('/ai-consultant')}
+                className="prometheus-button-secondary"
+                title="AI Consultant öffnen"
+              >
+                <Brain size={16} />
+                AI Consultant
+              </button>
+              
               <button
                 onClick={handleCreateCampaign}
                 className="prometheus-button-primary"
@@ -448,6 +459,30 @@ const Dashboard = () => {
           </div>
         )}
       </main>
+      {/* Quick Actions in Dashboard.jsx */}
+      <div className="prometheus-card p-6">
+        <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Zap className="text-orange-500" size={20} />
+          Schnellzugriff
+        </h3>
+        <div className="space-y-4">
+          <button 
+            onClick={handleCreateCampaign}
+            className="w-full prometheus-button-primary justify-start"
+          >
+            <Target size={16} />
+            Neue Kampagne erstellen
+          </button>
+          <button 
+            onClick={() => navigate('/ai-consultant')}
+            className="w-full prometheus-button-secondary justify-start"
+          >
+            <Brain size={16} />
+            AI Marketing Consultant
+          </button>
+          {/* Weitere Buttons */}
+        </div>
+      </div>
     </div>
   );
 };

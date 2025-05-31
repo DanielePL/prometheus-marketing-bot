@@ -19,6 +19,13 @@ import {
   User,
   HelpCircle
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext'; // Falls nicht vorhanden
+
+// In AIConsultantPage.jsx am Anfang importieren
+import { testAIConnection } from '../utils/aiTestUtil';
+
+// Importieren der Dev-Auth-Utilities
+import { addAuthHeader, getTokenOrCreateDevToken } from '../utils/devAuthUtil';
 
 const AIConsultantPage = ({ campaignId = null, onGoBack = null }) => {
   // State
@@ -67,6 +74,9 @@ const AIConsultantPage = ({ campaignId = null, onGoBack = null }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSampleQuestions, setShowSampleQuestions] = useState(true);
 
+  // Dann fügen wir einen Debug-Status hinzu
+  const [debugMode, setDebugMode] = useState(false);
+
   const sampleQuestions = [
     {
       category: 'Performance Analysis',
@@ -96,11 +106,20 @@ const AIConsultantPage = ({ campaignId = null, onGoBack = null }) => {
     }
   };
 
-  const sendMessage = (message = null) => {
+  const { api, user } = useAuth(); // Den API-Client und User aus dem Auth-Kontext holen
+  
+  // Und eine Debug-Toggle-Funktion
+  const toggleDebugMode = () => {
+    setDebugMode(prev => !prev);
+    console.log('Debug-Modus:', !debugMode);
+  };
+
+  // In sendMessage-Funktion:
+  const sendMessage = async (message = null) => {
     const messageToSend = message || inputMessage.trim();
     if (!messageToSend) return;
 
-    // Add user message
+    // Nutzer-Nachricht hinzufügen
     const userMessage = {
       id: 'user-' + Date.now(),
       type: 'user',
@@ -113,83 +132,140 @@ const AIConsultantPage = ({ campaignId = null, onGoBack = null }) => {
     setIsLoading(true);
     setShowSampleQuestions(false);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(messageToSend);
-      const aiMessage = {
+    try {
+      console.log('Sende Nachricht an AI Consultant:', messageToSend);
+      
+      // Sicherstellen, dass ein Dev-Token verfügbar ist
+      getTokenOrCreateDevToken();
+      
+      // API-Anfrage senden mit verbesserten Headers
+      const response = await fetch('/api/ai-consultant/chat', {
+        method: 'POST',
+        headers: addAuthHeader({
+          'Content-Type': 'application/json'
+        }),
+        body: JSON.stringify({
+          message: messageToSend,
+          campaignId: campaignId
+        })
+      });
+      
+      console.log('Rohe API-Antwort:', response);
+      
+      if (!response.ok) {
+        // Bei 401-Fehler versuchen, die öffentliche Test-API zu verwenden
+        if (response.status === 401) {
+          console.log('⚠️ Authentifizierung fehlgeschlagen, versuche öffentlichen Test-Endpunkt');
+          const fallbackResponse = await fetch('/api/ai-consultant/public-test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: messageToSend })
+          });
+          
+          if (!fallbackResponse.ok) {
+            throw new Error(`Fallback-API fehlgeschlagen: ${fallbackResponse.status}`);
+          }
+          
+          const fallbackData = await fallbackResponse.json();
+          return {
+            success: true,
+            response: fallbackData.response,
+            suggestions: [
+              "Versuchen Sie es mit einem gültigen Login",
+              "Überprüfen Sie Ihre Authentifizierung"
+            ]
+          };
+        }
+        
+        throw new Error(`Server-Fehler: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Verarbeitete API-Antwort:', data);
+
+      if (data.success) {
+        const aiMessage = {
+          id: 'ai-' + Date.now(),
+          type: 'ai',
+          content: data.response,
+          suggestions: data.suggestions || [],
+          actionItems: data.actionItems || [],
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        throw new Error(data.message || 'AI Consultant konnte nicht antworten');
+      }
+    } catch (error) {
+      console.error('AI Consultant Fehler (Details):', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      // Fallback-Antwort bei Fehler
+      const errorMessage = {
         id: 'ai-' + Date.now(),
         type: 'ai',
-        content: aiResponse.content,
-        suggestions: aiResponse.suggestions,
-        actionItems: aiResponse.actionItems,
+        content: "Entschuldigung, ich habe momentan technische Schwierigkeiten. Bitte versuchen Sie es später noch einmal.",
         timestamp: new Date()
       };
-
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
+  };
+  
+  // Andere spezialisierte Methoden aktualisieren
+  const triggerSpecializedAnalysis = async (type) => {
+    setIsLoading(true);
+    try {
+      const endpoint = type === 'performance' 
+        ? `/api/ai-consultant/analyze-campaign/${campaignId}`
+        : type === 'budget'
+        ? `/api/ai-consultant/optimize-budget/${campaignId}`
+        : `/api/ai-consultant/suggest-creatives/${campaignId}`;
+        
+      const method = 'POST';
+      const body = type === 'budget' ? JSON.stringify({ totalBudget: 500 }) : null;
+      
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        ...(body && { body })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Entsprechende Antwort verarbeiten und in die Chat-Oberfläche einfügen
+        const message = type === 'performance' ? data.analysis 
+          : type === 'budget' ? JSON.stringify(data.recommendedAllocation)
+          : data.improvements.join(', ');
+          
+        const aiMessage = {
+          id: 'ai-' + Date.now(),
+          type: 'ai',
+          content: message,
+          suggestions: data.recommendations || [],
+          actionItems: data.urgentActions || [],
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, aiMessage]);
+      }
+    } catch (error) {
+      console.error(`Fehler bei ${type} Analyse:`, error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const generateAIResponse = (userMessage) => {
-    const lowerMessage = userMessage.toLowerCase();
-
-    if (lowerMessage.includes('roas') || lowerMessage.includes('performance')) {
-      return {
-        content: `Ich analysiere Ihre **ROAS-Performance**:\n\n📊 **Aktuelle Metriken:**\n- ROAS: 4.2x (Sehr gut!)\n- Spend: €2,450 heute\n- Revenue: €10,290\n\n💡 **Verbesserungsvorschläge:**\n- Erhöhen Sie das Budget für Top-Performer um 20%\n- Testen Sie neue Audiences mit ähnlichen Profilen\n- Optimieren Sie Landingpage für mobile Nutzer`,
-        suggestions: [
-          'Zeige mir die besten Audiences',
-          'Wie kann ich Budget erhöhen?',
-          'Welche Creatives performen am besten?'
-        ],
-        actionItems: [
-          'Budget für Lookalike 1% um €50/Tag erhöhen',
-          'A/B Test neue Headlines starten'
-        ]
-      };
-    }
-
-    if (lowerMessage.includes('budget') || lowerMessage.includes('kosten')) {
-      return {
-        content: `**Budget-Optimierung Analyse:**\n\n💰 **Aktuelle Verteilung:**\n- Meta Ads: 60% (€300/Tag) - ROAS 4.5x\n- Google Ads: 40% (€200/Tag) - ROAS 3.8x\n\n🎯 **Empfohlene Umverteilung:**\n- Meta Ads: 70% (€350/Tag)\n- Google Ads: 30% (€150/Tag)\n\n**Erwartete Verbesserung:** +15% ROAS`,
-        suggestions: [
-          'Führe die Budget-Umverteilung durch',
-          'Zeige mir Performance-Trends',
-          'Welche Tageszeiten sind optimal?'
-        ],
-        actionItems: [
-          'Meta Budget um €50 erhöhen',
-          'Google Budget um €50 reduzieren'
-        ]
-      };
-    }
-
-    if (lowerMessage.includes('creative') || lowerMessage.includes('anzeige')) {
-      return {
-        content: `**Creative-Performance Analyse:**\n\n🎨 **Top Performer:**\n- Video Creative #3: CTR 3.8%, ROAS 5.2x\n- Carousel #1: CTR 2.9%, ROAS 4.6x\n\n⚠️ **Underperformer:**\n- Static Image #2: CTR 0.8%, ROAS 1.9x\n\n**Empfehlung:** Pausieren Sie underperformende Creatives und testen Sie neue Video-Varianten.`,
-        suggestions: [
-          'Erstelle neue Video-Creatives',
-          'Analysiere Zielgruppen-Performance',
-          'Starte Creative A/B Tests'
-        ],
-        actionItems: [
-          'Static Image #2 pausieren',
-          '3 neue Video-Varianten testen'
-        ]
-      };
-    }
-
-    // Default response
-    return {
-      content: `Danke für Ihre Frage! Als Ihr **Performance Marketing Consultant** kann ich Ihnen bei folgenden Bereichen helfen:\n\n📊 **Performance-Analyse** - ROAS, CTR, Conversion-Optimierung\n💰 **Budget-Optimierung** - Plattform-Verteilung, Bid-Strategien\n🎨 **Creative-Optimierung** - A/B Testing, Content-Strategien\n🎯 **Targeting** - Audience-Entwicklung, Lookalikes\n\nWas möchten Sie genauer besprechen?`,
-      suggestions: [
-        'Analysiere meine Performance',
-        'Optimiere mein Budget',
-        'Verbessere meine Creatives',
-        'Zeige mir neue Zielgruppen'
-      ],
-      actionItems: []
-    };
-  };
+  // ALTE FUNKTION ENTFERNEN oder DEAKTIVIEREN
+  // const generateAIResponse = (userMessage) => { ... }
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -213,16 +289,6 @@ const AIConsultantPage = ({ campaignId = null, onGoBack = null }) => {
       'action': <Zap className="text-orange-400" size={16} />
     };
     return icons[type] || <AlertTriangle className="text-gray-400" size={16} />;
-  };
-
-  const triggerSpecializedAnalysis = (type) => {
-    const analysisMessages = {
-      'performance': 'Führe eine detaillierte Performance-Analyse der aktuellen Kampagne durch',
-      'budget': 'Optimiere die Budget-Verteilung für bessere Performance',
-      'creatives': 'Analysiere die Creative-Performance und gib Verbesserungsvorschläge'
-    };
-
-    sendMessage(analysisMessages[type]);
   };
 
   return (

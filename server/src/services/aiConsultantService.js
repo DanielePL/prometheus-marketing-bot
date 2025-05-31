@@ -449,6 +449,412 @@ Erstelle Budget-Optimierung:
       return [];
     }
   }
+
+  // Neue Methoden für aiConsultantService.js
+
+  // Hauptfunktion für die Kampagnenerstellung
+  async guideCampaignCreation(userId, step, currentData = {}) {
+    try {
+      console.log(`💬 Kampagnen-Guide: User ${userId}, Schritt: ${step}`);
+      
+      // System-Prompt für die Kampagnenerstellung vorbereiten
+      const systemPrompt = this.getCampaignCreationSystemPrompt();
+      
+      // Schritt-spezifischen Prompt erstellen
+      const userPrompt = this.getCampaignStepPrompt(step, currentData);
+      
+      // OpenAI API aufrufen
+      const response = await this.openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 1800,
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      });
+      
+      // Response parsen und zurückgeben
+      const parsedResponse = JSON.parse(response.choices[0].message.content);
+      
+      return {
+        success: true,
+        step,
+        guidance: parsedResponse,
+        consultant: this.consultantPersonality
+      };
+      
+    } catch (error) {
+      console.error('❌ Kampagnen-Guide Fehler:', error);
+      return {
+        success: false,
+        step,
+        error: error.message,
+        fallbackGuidance: this.getFallbackGuidance(step)
+      };
+    }
+  }
+
+  // Hilfsmethode: System-Prompt für den Kampagnen-Guide
+  getCampaignCreationSystemPrompt() {
+    return `Du bist Marcus, ein erfahrener Performance Marketing Berater, der Nutzern hilft, erfolgreiche Werbekampagnen zu erstellen.
+
+DEIN CHARAKTER:
+- Professionell aber freundlich
+- Erklärt komplexe Konzepte verständlich
+- Gibt immer konkrete, umsetzbare Ratschläge
+- Nutzt Beispiele und Vergleiche
+- Spricht Deutsch mit gelegentlichen Fachbegriffen
+
+DEINE AUFGABE:
+- Führe den Nutzer durch den Kampagnen-Erstellungsprozess
+- Erkläre jeden Schritt und seine Bedeutung
+- Gib datenbasierte Empfehlungen (Budgets, Zielgruppen, etc.)
+- Zeige verschiedene Optionen auf und erkläre Vor- und Nachteile
+- Vermittle ein Gefühl der Sicherheit und Klarheit
+
+WICHTIG:
+- Benutze immer konkrete Zahlen und Beispiele
+- Vermeide allgemeine Floskeln
+- Mache Prognosen zu erwartbaren Ergebnissen
+- Hilf Nutzern, informierte Entscheidungen zu treffen
+
+ANTWORTFORMAT:
+Du musst in einem strukturierten JSON-Format antworten mit folgenden Feldern:
+{
+  "mainAdvice": "Hauptratschlag im Markdown-Format mit Erklärungen",
+  "recommendations": ["Liste mit 2-4 spezifischen Empfehlungen"],
+  "estimations": {
+    "description": "Erklärung der Schätzungen",
+    "metrics": {"metric1": value, "metric2": value}
+  },
+  "options": [
+    {"name": "Option 1", "description": "Beschreibung", "pros": ["Vorteil 1"], "cons": ["Nachteil 1"]},
+    {"name": "Option 2", "description": "Beschreibung", "pros": ["Vorteil 1"], "cons": ["Nachteil 1"]}
+  ],
+  "nextSteps": ["Empfohlene nächste Schritte"]
+}`;
+  }
+
+  // Hilfsmethode: Prompt für spezifischen Kampagnenschritt
+  getCampaignStepPrompt(step, currentData) {
+    const steps = {
+      name: `Hilf dem Nutzer, einen effektiven Namen für die Kampagne zu finden.
+    
+Produktinfos: ${JSON.stringify(currentData.product || {})}
+Ziel der Kampagne: ${currentData.objective || "Noch nicht festgelegt"}
+Aktueller Kampagnenname: "${currentData.name || ''}"
+
+Gib Vorschläge für Kampagnennamen, die folgende Kriterien erfüllen:
+- Klar und präzise
+- Erinnerungswürdig
+- Gut für die interne Organisation
+- Passen zum Produkt und Ziel
+
+Erkläre auch, warum gute Kampagnennamen wichtig sind und wie sie bei der Analyse helfen.`,
+
+      budget: `Empfehle ein passendes Werbebudget basierend auf folgenden Informationen:
+    
+Produkt: ${JSON.stringify(currentData.product || {})}
+Preis: €${currentData.product?.price || "unbekannt"}
+Gewinnmarge: ${currentData.product?.margin || "unbekannt"}%
+Kampagnenziel: ${currentData.objective || "Verkäufe steigern"}
+Plattform(en): ${currentData.platforms?.join(', ') || "META"}
+
+Beantworte dabei folgende Fragen:
+1. Welches tägliche Budget macht Sinn für dieses Produkt?
+2. Was kann man mit €50, €100, €200 pro Tag erreichen?
+3. Wie viele potentielle Kunden kann man damit erreichen?
+4. Wie viele Conversions kann man mit diesem Budget erwarten?
+5. Wie hoch ist der erwartete ROI bei verschiedenen Budgets?
+
+Gib konkrete Zahlen und Schätzungen für verschiedene Budget-Szenarien.`,
+
+      duration: `Empfehle eine optimale Laufzeit für die Kampagne:
+    
+Kampagne: ${currentData.name || "Neue Kampagne"}
+Produkt: ${JSON.stringify(currentData.product || {})}
+Tägliches Budget: €${currentData.budget?.daily || 50}
+Ziel: ${currentData.objective || "Verkäufe steigern"}
+Plattform(en): ${currentData.platforms?.join(', ') || "META"}
+
+Beantworte folgende Fragen:
+1. Wie lange sollte die Kampagne mindestens laufen?
+2. Was sind Vor- und Nachteile von kurzen vs. langen Kampagnen?
+3. Welche Phasen durchläuft eine Kampagne normalerweise?
+4. Wann kann man erste Ergebnisse erwarten?
+5. Wann sollte man Optimierungen vornehmen?
+
+Gib eine klare Empfehlung für diesen speziellen Fall.`,
+
+      audience: `Hilf bei der Zielgruppenauswahl für diese Kampagne:
+    
+Produkt: ${JSON.stringify(currentData.product || {})}
+Kampagnenziel: ${currentData.objective || "Verkäufe steigern"}
+Plattform(en): ${currentData.platforms?.join(', ') || "META"}
+
+Beantworte folgende Fragen:
+1. Welche Zielgruppe würde am besten zu diesem Produkt passen?
+2. Wie spezifisch sollte die Zielgruppe sein?
+3. Welche demografischen Merkmale sind relevant?
+4. Welche Interessen sollten berücksichtigt werden?
+5. Wie groß sollte die Zielgruppe sein für gute Ergebnisse?
+
+Gib konkrete Vorschläge für Zielgruppeneinstellungen für dieses Produkt.`,
+
+      creatives: `Empfehle Werbeformate und kreative Ansätze für:
+    
+Produkt: ${JSON.stringify(currentData.product || {})}
+Zielgruppe: ${JSON.stringify(currentData.audience || "Noch nicht definiert")}
+Plattform(en): ${currentData.platforms?.join(', ') || "META"}
+
+Beantworte folgende Fragen:
+1. Welche Anzeigenformate eignen sich am besten?
+2. Welche kreativen Ansätze funktionieren typischerweise gut?
+3. Welche Botschaft sollte kommuniziert werden?
+4. Wie viele verschiedene Kreative sollte man testen?
+5. Was sind Best Practices für Werbetexte und Bilder?
+
+Gib konkrete Beispiele und Vorschläge für dieses Produkt.`
+    };
+
+    // Fallback für unbekannte Schritte
+    return steps[step] || `Berate den Nutzer zum Thema Kampagnenerstellung (Schritt: ${step})
+  
+Aktueller Stand: ${JSON.stringify(currentData)}
+
+Gib hilfreiche Ratschläge zur Kampagnenerstellung und beantworte mögliche Fragen.`;
+  }
+
+  // Hilfsmethode: Fallback-Antworten für Server-Fehler
+  getFallbackGuidance(step) {
+    const fallbacks = {
+      name: {
+        mainAdvice: "Ein guter Kampagnenname sollte klar, präzise und leicht zu merken sein. Er sollte Produkt, Ziel und idealerweise die Zielgruppe widerspiegeln.",
+        recommendations: ["Verwende das Format [Produkt]-[Ziel]-[Monat/Jahr]", "Halte es kurz und aussagekräftig", "Sei konsistent in der Benennung aller Kampagnen"]
+      },
+      budget: {
+        mainAdvice: "Das Budget sollte auf Produktwert, Gewinnmarge und Kampagnenziel basieren. Ein guter Startpunkt ist 10-20x des Produktwerts für ausreichend Testdaten.",
+        recommendations: ["Beginne mit mindestens 30-50€ täglich für aussagekräftige Daten", "Plane ein Test-Budget für 5-7 Tage ein", "Berechne das Budget basierend auf Ziel-CAC"]
+      },
+      duration: {
+        mainAdvice: "Die optimale Laufzeit hängt vom Ziel, Budget und Lernphase der Plattform ab. Typischerweise benötigen Kampagnen mindestens 5-7 Tage für die Lernphase.",
+        recommendations: ["Mindestlaufzeit: 7 Tage für initiale Optimierung", "Evaluierung nach 14 Tagen", "Langfristige Kampagnen (30+ Tage) für konsistente Performance"]
+      }
+    };
+    
+    return fallbacks[step] || {
+      mainAdvice: "Bei der Kampagnenerstellung ist es wichtig, klar definierte Ziele zu haben und alle Entscheidungen daran auszurichten.",
+      recommendations: ["Definiere klare Kampagnenziele", "Wähle die richtigen Plattformen für deine Zielgruppe", "Teste verschiedene Creatives und Botschaften"]
+    };
+  }
+
+  // Methode für Kampagnen-Budget-Prognosen
+  async forecastCampaignPerformance(campaignData) {
+    try {
+      const productPrice = campaignData.product?.price || 50;
+      const dailyBudget = campaignData.budget?.daily || 50;
+      const platform = campaignData.platforms?.[0] || 'META';
+      
+      // Benchmarks basierend auf Plattform und Branche
+      // Diese Werte könnten in einer Datenbank oder separaten Datei gespeichert werden
+      const benchmarks = {
+        META: {
+          cpm: 8.5,                 // Kosten pro 1000 Impressions
+          ctr: 1.2,                 // Click-Through-Rate (%)
+          convRate: {               // Conversion Rates nach Kampagnenziel
+            AWARENESS: 0.5,
+            TRAFFIC: 1.0,
+            LEADS: 2.5,
+            SALES: 3.0
+          },
+          audience: {               // Durchschnittliche Zielgruppengrößen
+            broad: 500000,
+            targeted: 100000,
+            specific: 20000
+          }
+        },
+        GOOGLE: {
+          cpm: 7.2,
+          ctr: 2.1,
+          convRate: {
+            AWARENESS: 0.4,
+            TRAFFIC: 1.8,
+            LEADS: 3.0,
+            SALES: 3.5
+          },
+          audience: {
+            broad: 600000,
+            targeted: 150000,
+            specific: 30000
+          }
+        }
+      };
+      
+      const bm = benchmarks[platform] || benchmarks.META;
+      const objective = campaignData.objective || 'SALES';
+      const convRate = bm.convRate[objective] || bm.convRate.SALES;
+      
+      // Basis-Berechnungen
+      const dailyImpressions = (dailyBudget / bm.cpm) * 1000;
+      const dailyClicks = dailyImpressions * (bm.ctr / 100);
+      const dailyConversions = dailyClicks * (convRate / 100);
+      const dailyRevenue = dailyConversions * productPrice;
+      const dailyRoas = dailyBudget > 0 ? dailyRevenue / dailyBudget : 0;
+      
+      // Verschiedene Budget-Szenarien
+      const scenarios = [30, 50, 100, 200, 500].map(budget => {
+        const impressions = (budget / bm.cpm) * 1000;
+        const clicks = impressions * (bm.ctr / 100);
+        const conversions = clicks * (convRate / 100);
+        const revenue = conversions * productPrice;
+        const roas = budget > 0 ? revenue / budget : 0;
+        
+        return {
+          budget,
+          daily: {
+            impressions: Math.round(impressions),
+            clicks: Math.round(clicks),
+            conversions: Number(conversions.toFixed(2)),
+            revenue: Number(revenue.toFixed(2)),
+            roas: Number(roas.toFixed(2))
+          },
+          monthly: {
+            impressions: Math.round(impressions * 30),
+            clicks: Math.round(clicks * 30),
+            conversions: Number((conversions * 30).toFixed(2)),
+            revenue: Number((revenue * 30).toFixed(2)),
+            roas: Number(roas.toFixed(2))
+          }
+        };
+      });
+      
+      // Zielgruppenschätzung
+      const audienceType = campaignData.audience?.specificity || 'targeted';
+      const estimatedAudienceSize = bm.audience[audienceType] || bm.audience.targeted;
+      const dailyReach = Math.min(dailyImpressions, estimatedAudienceSize * 0.1);
+      const monthlyReach = Math.min(dailyReach * 30, estimatedAudienceSize);
+      
+      // Formatiere die Ergebnisse
+      return {
+        success: true,
+        currentBudget: {
+          daily: dailyBudget,
+          monthly: dailyBudget * 30
+        },
+        estimatedReach: {
+          daily: Math.round(dailyReach),
+          monthly: Math.round(monthlyReach),
+          totalAudience: estimatedAudienceSize
+        },
+        dailyResults: {
+          impressions: Math.round(dailyImpressions),
+          clicks: Math.round(dailyClicks),
+          conversions: Number(dailyConversions.toFixed(2)),
+          revenue: Number(dailyRevenue.toFixed(2)),
+          roas: Number(dailyRoas.toFixed(2))
+        },
+        monthlyResults: {
+          impressions: Math.round(dailyImpressions * 30),
+          clicks: Math.round(dailyClicks * 30),
+          conversions: Number((dailyConversions * 30).toFixed(2)),
+          revenue: Number((dailyRevenue * 30).toFixed(2)),
+          roas: Number(dailyRoas.toFixed(2))
+        },
+        budgetScenarios: scenarios,
+        recommendedBudget: this.getRecommendedBudget(productPrice, objective),
+        recommendedDuration: this.getRecommendedDuration(objective)
+      };
+    } catch (error) {
+      console.error('❌ Kampagnen-Prognose Fehler:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Hilfsmethode: Empfohlenes Budget basierend auf Produktpreis und Kampagnenziel
+  getRecommendedBudget(productPrice, objective) {
+    let factor;
+    
+    switch(objective) {
+      case 'AWARENESS':
+        factor = 0.5; // Kleineres Budget für Awareness
+        break;
+      case 'TRAFFIC':
+        factor = 1.0;
+        break;
+      case 'LEADS':
+        factor = 1.5;
+        break;
+      case 'SALES':
+        factor = 2.0; // Höheres Budget für Sales-Kampagnen
+        break;
+      default:
+        factor = 1.0;
+    }
+    
+    // Basis-Budget-Berechnung basierend auf Produktpreis
+    const baseRecommendation = Math.max(30, productPrice * factor);
+    
+    // Budget-Stufen für sinnvolle Empfehlungen
+    const budgetTiers = [30, 50, 80, 100, 150, 200, 300, 500, 800, 1000];
+    
+    // Finde den nächsthöheren Budgetwert aus den Stufen
+    let recommended = budgetTiers[0];
+    for (let tier of budgetTiers) {
+      if (tier >= baseRecommendation) {
+        recommended = tier;
+        break;
+      }
+    }
+    
+    return {
+      daily: recommended,
+      monthly: recommended * 30,
+      minimum: Math.max(20, Math.floor(productPrice * 0.5)),
+      optimal: recommended,
+      aggressive: Math.floor(recommended * 2)
+    };
+  }
+
+  // Hilfsmethode: Empfohlene Laufzeit basierend auf Kampagnenziel
+  getRecommendedDuration(objective) {
+    switch(objective) {
+      case 'AWARENESS':
+        return {
+          minimum: 10,
+          optimal: 30,
+          explanation: "Awareness-Kampagnen benötigen Zeit, um Reichweite aufzubauen und Markenbekanntheit zu steigern."
+        };
+      case 'TRAFFIC':
+        return {
+          minimum: 7,
+          optimal: 21,
+          explanation: "Traffic-Kampagnen können schneller bewertet werden, benötigen aber Zeit für Optimierungen."
+        };
+      case 'LEADS':
+        return {
+          minimum: 14,
+          optimal: 30,
+          explanation: "Lead-Generierung erfordert eine stabile Datenbasis und mehrere Optimierungszyklen."
+        };
+      case 'SALES':
+        return {
+          minimum: 14,
+          optimal: 30,
+          explanation: "Verkaufskampagnen benötigen genügend Konversionsdaten und Lernzeit für die Algorithmen."
+        };
+      default:
+        return {
+          minimum: 10,
+          optimal: 30,
+          explanation: "Als Faustregel sollten Kampagnen mindestens 10 Tage laufen, optimal sind 30 Tage für vollständige Optimierung."
+        };
+    }
+  }
 }
 
 // Singleton

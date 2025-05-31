@@ -2,6 +2,26 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+// API-Client erstellen
+const api = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// API-Interceptor für Auth-Token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Auth Context erstellen
 const AuthContext = createContext();
 
@@ -127,7 +147,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    setError
+    setError,
+    api // API-Client hinzufügen
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

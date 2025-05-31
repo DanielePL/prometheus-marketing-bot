@@ -8,6 +8,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import NotFoundPage from './pages/NotFoundPage';
+// Korrigierte Importe für Kampagnen-Seiten
+import CreateCampaign from './pages/CreateCampaign';
+import CampaignDetails from './pages/CampaignDetails';
 // Andere Importe...
 
 function App() {
@@ -30,6 +33,10 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
+          {/* Kampagnen-Routen - NEUE ROUTEN */}
+          <Route path="/create-campaign" element={<ProtectedRoute><CreateCampaign /></ProtectedRoute>} />
+          <Route path="/campaign/:id" element={<ProtectedRoute><CampaignDetails /></ProtectedRoute>} />
           
           {/* Standardroute zur Startseite oder Login umleiten */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

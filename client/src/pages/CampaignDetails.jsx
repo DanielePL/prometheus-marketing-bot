@@ -74,15 +74,21 @@ const CampaignDetails = () => {
   };
 
   const handleEdit = () => {
-    toast.info('Bearbeiten wird in Step 3 implementiert');
+    toast('Bearbeiten wird in Step 3 implementiert', {
+      icon: '🔧'
+    });
   };
 
   const handleToggleStatus = () => {
-    toast.info('Status ändern wird in Step 3 implementiert');
+    toast('Status ändern wird in Step 3 implementiert', {
+      icon: '⚙️'
+    });
   };
 
   const handleDelete = () => {
-    toast.info('Löschen wird in Step 3 implementiert');
+    toast('Löschen wird in Step 3 implementiert', {
+      icon: '🗑️'
+    });
   };
 
   // Utility Functions

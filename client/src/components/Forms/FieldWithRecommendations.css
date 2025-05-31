@@ -1,0 +1,113 @@
+/* client/src/components/Forms/FieldWithRecommendations.css */
+
+.field-with-recommendations {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.field-with-recommendations label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.input-container {
+  position: relative;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+}
+
+.recommendations-container {
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  overflow: hidden;
+  background-color: rgba(79, 70, 229, 0.03);
+}
+
+.recommendations-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  background-color: rgba(79, 70, 229, 0.08);
+}
+
+.recommendations-header:hover {
+  background-color: rgba(79, 70, 229, 0.12);
+}
+
+.recommendations-avatar {
+  width: 20px;
+  height: 20px;
+  background-color: #4f46e5;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 10px;
+  margin-right: 6px;
+}
+
+.recommendations-header span {
+  flex: 1;
+  font-size: 12px;
+  color: #4f46e5;
+}
+
+.recommendations-header button {
+  background: transparent;
+  border: none;
+  color: #4f46e5;
+  cursor: pointer;
+}
+
+.recommendations-list {
+  padding: 6px;
+}
+
+.recommendation-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background-color: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.recommendation-button:hover {
+  background-color: rgba(79, 70, 229, 0.08);
+}
+
+.recommendation-button svg {
+  color: #4f46e5;
+}
+
+.help-text {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
